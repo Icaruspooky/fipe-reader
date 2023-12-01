@@ -36,7 +36,7 @@ public class BatchPlateReader {
                 writer.writeNext(new String[] {plate, year, model});
 
                 System.out.println(plate);
-                TimeUnit.SECONDS.sleep(14);
+                TimeUnit.SECONDS.sleep(15);
             }
         } catch (IOException | CsvValidationException | InterruptedException e) {
             System.out.println(e.getMessage());
