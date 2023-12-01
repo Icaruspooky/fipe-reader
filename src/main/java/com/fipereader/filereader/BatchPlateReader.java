@@ -17,14 +17,14 @@ import com.opencsv.exceptions.CsvValidationException;
 public class BatchPlateReader {
     public static void readFile(String filePath) throws IOException, CsvValidationException, InterruptedException {
         FileReader fileReader = new FileReader(filePath + "placas.csv");
-        FileWriter fileWriter = new FileWriter(filePath + "placas-e-ano.csv");
+        FileWriter fileWriter = new FileWriter(filePath + "placas-ano-modelo.csv");
 
         CSVParser csvParser = new CSVParserBuilder().withSeparator(';').build();
         CSVReader reader = new CSVReaderBuilder(fileReader).withCSVParser(csvParser).build();
         CSVWriter writer = new CSVWriter(fileWriter);
 
         String[] line = reader.readNext();
-        String[] newLine = {line[0], "Ano"};
+        String[] newLine = {line[0], "Ano", "Modelo"};
         writer.writeNext(newLine);
 
         try {
@@ -36,7 +36,7 @@ public class BatchPlateReader {
                 writer.writeNext(new String[] {plate, year, model});
 
                 System.out.println(plate);
-                TimeUnit.SECONDS.sleep(10);
+                TimeUnit.SECONDS.sleep(14);
             }
         } catch (IOException | CsvValidationException | InterruptedException e) {
             System.out.println(e.getMessage());
