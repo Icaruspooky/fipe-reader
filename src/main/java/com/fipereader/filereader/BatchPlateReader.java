@@ -4,46 +4,62 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.util.Iterator;
+import java.util.List;
 
-import com.fipereader.searcher.CarPlateSearcher;
+import com.fipereader.cars.CarInformation;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.CSVWriter;
-import com.opencsv.exceptions.CsvValidationException;
+import com.opencsv.exceptions.CsvException;
+import com.sun.jdi.request.InvalidRequestStateException;
 
 public class BatchPlateReader {
-    public static void readFile(String filePath) throws IOException, CsvValidationException, InterruptedException {
-        FileReader fileReader = new FileReader(filePath + "placas.csv");
-        FileWriter fileWriter = new FileWriter(filePath + "placas-ano-modelo.csv");
+    public static void readFile(String filePath) throws IOException, CsvException, InterruptedException {
+        FileReader fileReader = new FileReader(filePath + "plates.csv");
+        FileWriter successFileWriter = new FileWriter(filePath + "plate-year-model.csv");
+        FileWriter failFileWriter = new FileWriter(filePath + "errors.csv");
 
         CSVParser csvParser = new CSVParserBuilder().withSeparator(';').build();
         CSVReader reader = new CSVReaderBuilder(fileReader).withCSVParser(csvParser).build();
-        CSVWriter writer = new CSVWriter(fileWriter);
+        CSVWriter successWriter = new CSVWriter(successFileWriter);
+        CSVWriter failWriter = new CSVWriter(failFileWriter);
 
-        String[] line = reader.readNext();
-        String[] newLine = {line[0], "Ano", "Modelo"};
-        writer.writeNext(newLine);
+        List<String[]> lines = reader.readAll();
+        Iterator<String[]> linesIterator = lines.iterator();
+        String[] line = linesIterator.next();
+        String[] newLine = {line[0], "Year", "Model"};
+        successWriter.writeNext(newLine);
+        failWriter.writeNext(line);
 
         try {
-            while ((line = reader.readNext()) != null) {
-                String plate = line[0];
-                CarPlateSearcher carPlateSearcher = new CarPlateSearcher(plate);
-                String year = carPlateSearcher.getCarYear();
-                String model = carPlateSearcher.getCarModel();
-                writer.writeNext(new String[] {plate, year, model});
+            int totalPlates = lines.size() - 1;
+            int platesRead = 1;
+            while (linesIterator.hasNext()) {
+                String plate = linesIterator.next()[0];
 
-                System.out.println(plate);
-                TimeUnit.SECONDS.sleep(15);
+                try {
+                    CarInformation carInformation = new CarInformation(plate);
+                    String year = carInformation.getCarYear();
+                    String model = carInformation.getCarModel();
+                    successWriter.writeNext(new String[]{plate, year, model});
+                    System.out.println("Plate " + plate + " " + platesRead + " of " + totalPlates);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InvalidRequestStateException e) {
+                    failWriter.writeNext(new String[]{plate});
+                }
+                platesRead++;
             }
-        } catch (IOException | CsvValidationException | InterruptedException e) {
+        } catch (RuntimeException e) {
             System.out.println(e.getMessage());
             System.out.println(Arrays.toString(e.getStackTrace()));
         } finally {
             reader.close();
-            writer.close();
+            successWriter.close();
+            failWriter.close();
         }
     }
 }
